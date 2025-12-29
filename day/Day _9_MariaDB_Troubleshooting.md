@@ -1,6 +1,6 @@
 # Day 9: MariaDB Troubleshooting
 
-**Difficulty**: � Intermediate  
+**Difficulty**: 🟡 Intermediate  
 **Category**: Troubleshooting / Database  
 **Estimated Time**: 15-20 minutes  
 
