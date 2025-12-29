@@ -12,12 +12,25 @@ Troubleshoot and restore the **MariaDB** database service on the **Database Serv
 
 ---
 
+## 🖥️ Server Details
+
+| Parameter        | Value                     |
+|------------------|---------------------------|
+| Data Center      | Stratos DC                |
+| Application      | Nautilus Application      |
+| Database Server  | stdb01                    |
+| Database Engine  | MariaDB 10.5              |
+| Operating System | Linux                     |
+| Access Method    | SSH                       |
+| Server IP        | `172.16.xxx.xxx`          |
+
 ## 📖 Scenario
 
 The **Nautilus App deployment team** has reported an issue with the application. Upon investigation, they found that the application cannot connect to the backend database.
 As a DevOps Engineer, you have been assigned to identify the root cause and bring the **MariaDB** service back online.
 
 ---
+
 
 ## 📋 Prerequisites
 
@@ -38,7 +51,12 @@ As a DevOps Engineer, you have been assigned to identify the root cause and brin
 
 ## 🔧 Implementation Steps
 
-### Step 1: Check Service Status
+### Step 1: Connect to Database Server
+
+```bash
+ssh peter@172.16.xxx.xxx
+```
+### Step 2: Check Service Status
 
 First, check the current status of the MariaDB service to confirm it is down.
 
@@ -48,7 +66,7 @@ sudo systemctl status mariadb
 
 If the service is in a **failed** state, check the logs for error messages.
 
-### Step 2: Analyze Logs
+### Step 3: Analyze Logs
 
 View the system logs tailored for the MariaDB service to find the specific error.
 
@@ -62,12 +80,23 @@ OR check the specific MariaDB log file (if it exists and is configured):
 cat /var/log/mariadb/mariadb.log
 ```
 
+```md
+### 🔍 Log Reference (MariaDB)
+
+```text
+[ERROR] InnoDB: Operating system error number 13 in a file operation.
+[ERROR] InnoDB: The error means mysqld does not have the access rights to the directory.
+[ERROR] InnoDB: Cannot open datafile './ibtmp1'
+[ERROR] InnoDB: Plugin initialization aborted with error Cannot open a file
+[ERROR] Plugin 'InnoDB' registration as a STORAGE ENGINE failed.
+[ERROR] Unknown/unsupported storage engine: InnoDB
+```
 **Common Error Indicators:**
 - `Permissions denied`
 - `Can't create/write to file ... (Errcode: 13)`
 - `Job for mariadb.service failed`
 
-### Step 3: Fix Ownership / Permissions
+### Step 4: Fix Ownership / Permissions
 
 A common issue in this scenario is incorrect ownership of the MariaDB data directory. The `mysql` user requires ownership of its data directories.
 
@@ -89,7 +118,7 @@ Also, ensure the runtime directory exists and has correct permissions if mention
 sudo chown -R mysql:mysql /var/run/mariadb
 ```
 
-### Step 4: Start the Service
+### Step 5: Start the Service
 
 After fixing the permissions, attempt to start the service again.
 
@@ -97,7 +126,7 @@ After fixing the permissions, attempt to start the service again.
 sudo systemctl start mariadb
 ```
 
-### Step 5: Verify the Fix
+### Step 6: Verify the Fix
 
 Check the status again to ensure it is **active (running)**.
 
@@ -139,9 +168,3 @@ mysql -u root -p
 - **Systemd**: Understanding how to control and debug system services is crucial for DevOps.
 
 ---
-
-## os Best Practices
-
-- **Monitoring**: Set up alerts for service state changes.
-- **Automation**: Use Ansible or Puppet to ensure correct permissions are always set.
-- **Backups**: Regular configuration and data backups are essential before troubleshooting.
