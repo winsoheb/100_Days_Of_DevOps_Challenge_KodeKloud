@@ -1,0 +1,197 @@
+# Day 10: Linux Bash Scripts – Website Backup Automation
+
+**Difficulty**: 🟡 Intermediate  
+**Category**: Linux Automation / Bash Scripting  
+**Estimated Time**: 30–40 minutes  
+
+---
+
+## 🎯 Objective
+
+Create a **Bash script** to automate the **backup of a static website** running on **App Server 1**.  
+The script should compress website files, store them locally, and securely copy them to a **remote backup server** without requiring a password.
+
+---
+
+## 🖥️ Environment Details
+
+| Component            | Details                          |
+|----------------------|----------------------------------|
+| **Organization**     | xFusionCorp Industries           |
+| **Data Center**      | Stratos Datacenter               |
+| **App Server**       | App Server 1 (stapp01)           |
+| **Backup Server**    | Nautilus Backup Server (stbkp01) |
+| **OS**               | Linux (CentOS Stream)            |
+| **App Server IP**    | `172.16.xxx.xxx`                 |
+| **Backup Server IP** | `172.16.xxx.xxx`                 |
+| **Script Location**  | `/scripts/`                      |
+| **Backup Location**  | `/backup/`                       |
+
+---
+
+## 📖 Scenario
+
+The production support team needs to automate **daily website backups**.  
+A static website is running under: `/var/www/html/news`
+
+The backup must:
+- Be compressed as a **zip archive**.
+- Be stored locally on the app server.
+- Be copied to a remote backup server.
+- **Run without prompting for a password** (Passwordless SSH).
+- Be executable by the application user.
+- **Not use `sudo`** inside the script.
+
+---
+
+## 📋 Prerequisites
+
+- SSH access to both servers.
+- **Passwordless SSH** configured between App Server and Backup Server.
+- `zip` package installed on App Server 1.
+- Backup directory `/backup` exists on both servers.
+
+> ⚠️ **Note**: `zip` must be installed **manually outside the script**.
+
+---
+
+## 🛠 Tools & Technologies
+
+- Bash
+- SSH / SCP
+- zip
+- Linux Filesystem
+
+---
+
+## 🔧 Implementation Steps
+
+### Step 1: Configure Passwordless SSH (One-Time Setup)
+
+From **App Server 1**, generate an SSH key (if not already done) and copy it to the backup server:
+
+```bash
+# Generate key (press enter for defaults)
+ssh-keygen -t rsa
+
+# Copy key to backup server
+ssh-copy-id clint@172.16.xxx.xxx
+```
+
+Verify passwordless login:
+
+```bash
+ssh clint@172.16.xxx.xxx
+# You should log in without a password
+exit
+```
+
+### Step 2: Install zip Package (Outside Script)
+
+The script requires `zip`, which might not be installed by default.
+
+```bash
+sudo yum install zip -y
+```
+
+### Step 3: Create the Backup Script
+
+Navigate to the scripts directory and create the file:
+
+```bash
+cd /scripts
+vi news_backup.sh
+```
+
+### Step 4: Script Content (`news_backup.sh`)
+
+Add the following content to the script:
+
+```bash
+#!/bin/bash
+
+# Define variables
+SOURCE_DIR="/var/www/html/news"
+BACKUP_DIR="/backup"
+BACKUP_FILE="xfusioncorp_news.zip"
+REMOTE_USER="clint"
+REMOTE_HOST="172.16.xxx.xxx"
+REMOTE_DEST="/backup/"
+
+# Print start message
+echo "Starting backup of $SOURCE_DIR..."
+
+# Create zip archive of website
+# -r: recursive (include all subfolders)
+zip -r "$BACKUP_DIR/$BACKUP_FILE" "$SOURCE_DIR"
+
+if [ $? -eq 0 ]; then
+    echo "Backup created successfully at $BACKUP_DIR/$BACKUP_FILE"
+else
+    echo "Failed to create backup archive."
+    exit 1
+fi
+
+# Copy backup to Nautilus Backup Server
+echo "Copying backup to remote server..."
+scp "$BACKUP_DIR/$BACKUP_FILE" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_DEST"
+
+if [ $? -eq 0 ]; then
+    echo "Backup successfully transferred to $REMOTE_HOST."
+else
+    echo "Failed to transfer backup."
+    exit 1
+fi
+
+echo "Backup process completed."
+```
+
+### Step 5: Make Script Executable
+
+Ensure the script has execution permissions:
+
+```bash
+chmod +x news_backup.sh
+```
+
+### Step 6: Execute and Verify
+
+Run the script manually to test:
+
+```bash
+./news_backup.sh
+```
+
+---
+
+## ✅ Verification
+
+**On App Server 1:**
+
+```bash
+ls -l /backup/xfusioncorp_news.zip
+```
+
+**On Backup Server:**
+
+```bash
+ssh clint@172.16.xxx.xxx "ls -l /backup/xfusioncorp_news.zip"
+```
+
+---
+
+## 🧠 Key Learnings
+
+- **Automation**: Bash scripts can automate repetitive operational tasks like backups.
+- **Compression**: `zip` is a simple tool for compressing website data across directories.
+- **Security**: Passwordless SSH (Keys) is essential for unattended automation scripts.
+- **Permissions**: Scripts should be executable (`chmod +x`) and generally run without `sudo` for routine tasks.
+
+---
+
+## 🔐 Best Practices
+
+- Store scripts in a dedicated directory (e.g., `/scripts`).
+- **Never hardcode passwords** in scripts; use SSH keys.
+- Use variables for paths and IPs to make the script reusable.
+- Test scripts manually before scheduling them with `cron`.
